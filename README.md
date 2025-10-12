@@ -65,14 +65,8 @@ codewars-journey/
 ### Milestones
 - 🎯 **Reach 6 kyu** - Intermediate problem solver
 - 🎯 **100+ katas** - Solid practice foundation
-- 🎯 **Streak goals** - Daily solving habit
-- 🎯 **PCEP prep** - Certification readiness
-
-### 📜 Certification Roadmap
-- 🐍 **PCEP** (Python Certified Entry-Level Programmer) - *Active*
-- 🐍 **PCAP** (Python Certified Associate Programmer) - *Planned 2025*
-- 🐧 **CompTIA Linux+** - *Future Goal*
-- 🐙 **GitHub Foundations** - *Future Goal*
+- 🎯 **Daily streak** - Consistent practice habit
+- 🎯 **Clean solutions** - Write readable, efficient code
 
 ---
 
