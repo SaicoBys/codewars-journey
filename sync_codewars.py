@@ -218,8 +218,9 @@ if __name__ == "__main__":
 
             # Replace the table in README
             import re
-            pattern = r'\| Rank \| Solved \| Progress \|\n\|------|--------|----------\|\n(.*?)\n\n'
-            replacement = f'| Rank | Solved | Progress |\n|------|--------|----------|\n{new_table}\n\n'
+            # Find the table section between the header and the next section
+            pattern = r'(### 🎯 Difficulty Breakdown\n\n)\| Rank \| Solved \| Progress \|.*?(?=\n---|\n## |\n\n## |\Z)'
+            replacement = f'\\1| Rank | Solved | Progress |\n|------|--------|----------|\n{new_table}\n'
             readme_content = re.sub(pattern, replacement, readme_content, flags=re.DOTALL)
 
             # Update last updated timestamp
