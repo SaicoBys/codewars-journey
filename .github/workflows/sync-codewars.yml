@@ -2,9 +2,11 @@ name: 🥋 Sync Codewars Progress
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # Daily at 8 AM UTC
+    - cron: '0 14 * * *'  # Daily at 8 AM Chicago time (2 PM UTC)
   workflow_dispatch:
-    description: 'Manually sync latest Codewars solutions'
+
+permissions:
+  contents: write
 
 jobs:
   sync-codewars:
@@ -14,7 +16,6 @@ jobs:
     - name: 🔄 Checkout repository
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
 
     - name: 🐍 Set up Python
@@ -28,17 +29,9 @@ jobs:
         pip install requests
 
     - name: 🔄 Sync from Codewars
-      id: sync
       run: |
         echo "Starting Codewars sync..."
-        python sync_codewars.py 2>&1 | tee sync_output.txt
-
-        # Check if new files were created
-        if grep -q "new kata files created!" sync_output.txt; then
-          echo "new_files=true" >> $GITHUB_OUTPUT
-        else
-          echo "new_files=false" >> $GITHUB_OUTPUT
-        fi
+        python sync_codewars.py
 
     - name: 📝 Check for changes
       id: verify-changes
@@ -46,8 +39,10 @@ jobs:
         git add -A
         if [ -n "$(git status --porcelain)" ]; then
           echo "changes=true" >> $GITHUB_OUTPUT
+          echo "✅ Changes detected"
         else
           echo "changes=false" >> $GITHUB_OUTPUT
+          echo "ℹ️ No changes to commit"
         fi
 
     - name: 🚀 Commit and push changes
@@ -57,10 +52,9 @@ jobs:
         git config --local user.name "Codewars Auto-Sync"
 
         # Count new kata files
-        NEW_FILES=$(git diff --cached --name-only | grep -E '\.py$' | wc -l)
-        UPDATED_README=$(git diff --cached --name-only | grep -E 'README\.md$' | wc -l)
+        NEW_FILES=$(git diff --cached --name-only | grep -E '\.py$' | wc -l | tr -d ' ')
 
-        # Create meaningful commit message
+        # Create commit message
         if [ "$NEW_FILES" -gt 0 ]; then
           git commit -m "🥋 Auto-sync: ${NEW_FILES} new kata(s) from Codewars
 
@@ -74,27 +68,31 @@ jobs:
 🤖 Generated with Codewars Auto-Sync"
         fi
 
-        # Push with retry logic (handle concurrent pushes)
-        for i in {1..3}; do
-          if git push; then
-            echo "✅ Push successful on attempt $i"
-            break
-          else
-            echo "⚠️ Push failed on attempt $i, pulling latest changes..."
-            git pull --rebase origin main
-          fi
+        # Push with retry logic
+        MAX_RETRIES=3
+        RETRY_COUNT=0
 
-          if [ $i -eq 3 ]; then
-            echo "❌ Failed to push after 3 attempts"
-            exit 1
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if git push origin main; then
+            echo "✅ Push successful!"
+            exit 0
+          else
+            echo "⚠️ Push failed, attempt $((RETRY_COUNT + 1))/$MAX_RETRIES"
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "🔄 Pulling latest changes..."
+              git pull --rebase origin main
+              sleep 2
+            fi
           fi
         done
 
-    - name: 📋 Display sync summary
+        echo "❌ Failed to push after $MAX_RETRIES attempts"
+        exit 1
+
+    - name: 📋 Summary
+      if: always()
       run: |
-        echo "🎉 Codewars Auto-Sync Complete!"
-        echo ""
-        echo "📊 Summary:"
-        if [ -f sync_output.txt ]; then
-          cat sync_output.txt | grep -E "(Total|Found|Created|complete)" || echo "Sync completed successfully"
-        fi
+        echo "🎉 Workflow complete!"
+        echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M UTC')"
